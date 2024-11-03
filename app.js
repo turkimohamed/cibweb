@@ -14,7 +14,7 @@ const apiUrl = 'https://test.satim.dz/payment/rest/register.do';
 function verifyShopifyWebhook(req) {
     const hmac = req.headers['x-shopify-hmac-sha256'];
     const generatedHash = crypto
-        .createHmac('sha256', process.env.f983dc98e0fbc84e915124a0c4d44945) // Use your API secret
+        .createHmac('sha256', process.env.SHOPIFY_API_SECRET) // Use your API secret
         .update(JSON.stringify(req.body), 'utf8') // Ensure you're using the correct encoding
         .digest('base64'); // Encode to base64
 
