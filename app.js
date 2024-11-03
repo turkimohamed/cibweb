@@ -2,6 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const crypto = require('crypto');
 
 const app = express();
 app.use(cors());
@@ -9,13 +10,30 @@ app.use(bodyParser.json());
 
 const apiUrl = 'https://test.satim.dz/payment/rest/register.do';
 
+// Function to verify Shopify webhook
+function verifyShopifyWebhook(req) {
+    const hmac = req.headers['x-shopify-hmac-sha256'];
+    const generatedHash = crypto
+        .createHmac('sha256', process.env.f983dc98e0fbc84e915124a0c4d44945) // Use your API secret
+        .update(JSON.stringify(req.body), 'utf8') // Ensure you're using the correct encoding
+        .digest('base64'); // Encode to base64
+
+    return hmac === generatedHash;
+}
+
+// Webhook endpoint to receive order creation events
 app.post('/shopify-webhook', async (req, res) => {
-    const shopifyOrder = req.body;
+    // Validate the webhook
+    if (!verifyShopifyWebhook(req)) {
+        return res.status(401).send('Unauthorized');
+    }
+
+    const shopifyOrder = req.body; // The order data sent by Shopify
     const orderNumber = shopifyOrder.id;
     const amount = shopifyOrder.total_price * 100; // Multiply for SATIM requirements
     const currency = '012';
-    const returnUrl = process.env.RETURN_URL;
-    const failUrl = process.env.FAIL_URL;
+    const returnUrl = process.env.RETURN_URL; // Set in your environment variables
+    const failUrl = process.env.FAIL_URL; // Set in your environment variables
     const force_terminal_id = 'E010901319';
 
     try {
@@ -46,6 +64,8 @@ app.post('/shopify-webhook', async (req, res) => {
     }
 });
 
-app.listen(3000, () => {
-    console.log('Server running on port 3000');
+// Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
